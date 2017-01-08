@@ -5,20 +5,10 @@ const rename = require('gulp-rename');
 const gutil = require('gulp-util');
 
 gulp.task('build', () => {
-    const b = babel({
-        presets: [
-            'es2015'
-        ],
-    });
-
-    /*b.on('error', e => {
-        gutil.log(e);
-        b.end();
-    });*/
+    const b = babel({ presets: [ 'es2015' ] });
 
     return gulp.src('lib/parser.js')
         .pipe(b)
-        // .pipe(uglify())
         .pipe(rename('parser.js'))
         .pipe(gulp.dest('dist'));
 });
