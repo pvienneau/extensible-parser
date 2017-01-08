@@ -28,7 +28,7 @@ var JSONParser = function () {
         value: function eat(str, exp) {
             var regExp = new RegExp('^\\s*' + exp, 'i');
 
-            if (typeof str != 'string') return false;
+            if (typeof str !== 'string') return false;
 
             if (!str.match(regExp)) return false;
 
@@ -39,13 +39,8 @@ var JSONParser = function () {
         value: function value(str) {
             var isEmptyAllowed = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
 
-            /* value can be either:
-                1. object
-                2. array
-                3. litteral
-            */
             var r = void 0;
-            var result = void 0;
+            var result = false;
 
             if ((r = this.array(str)) !== false) {
                 result = r;
@@ -54,7 +49,6 @@ var JSONParser = function () {
             } else if ((r = this.litteral(str)) !== false) {
                 result = r;
             } else if (isEmptyAllowed) {
-                // empty
                 result = str;
             }
 
@@ -178,9 +172,6 @@ var JSONParser = function () {
     }, {
         key: 'empty',
         value: function empty(str) {
-            /*if(!str.length) return str;
-             return str;*/
-
             return str;
         }
     }, {
