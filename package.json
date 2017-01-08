@@ -1,13 +1,14 @@
 {
     "name": "json-parser",
     "version": "0.0.0",
-    "description": "A simple JSON parser",
+    "description": "A simple JSON parser.",
     "author": "Patrick Vienneau",
     "keywords": [
         "json",
         "parser"
     ],
     "repository": "https://github.com/pvienneau/JSON-parser",
+    "issues": "https://github.com/pvienneau/JSON-parser/issues",
     "license": "MIT",
     "scripts": {
         "build": "gulp build",
