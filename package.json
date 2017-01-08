@@ -10,13 +10,13 @@
     "repository": "https://github.com/pvienneau/JSON-parser",
     "issues": "https://github.com/pvienneau/JSON-parser/issues",
     "license": "MIT",
+    "main": "dist/index.js",
     "scripts": {
         "build": "gulp build",
         "test": "babel-node jasmine.js",
         "test:build": "npm run build; npm run test;"
     },
     "devDependencies": {
-        "babel": "^6.5.2",
         "babel-cli": "^6.18.0",
         "babel-eslint": "^7.1.1",
         "babel-loader": "^6.2.10",

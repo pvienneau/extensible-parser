@@ -1,5 +1,4 @@
 const gulp = require('gulp');
-const uglify = require('gulp-uglify');
 const babel = require('gulp-babel');
 const rename = require('gulp-rename');
 const gutil = require('gulp-util');
@@ -9,6 +8,6 @@ gulp.task('build', () => {
 
     return gulp.src('lib/parser.js')
         .pipe(b)
-        .pipe(rename('parser.js'))
+        .pipe(rename('index.js'))
         .pipe(gulp.dest('dist'));
 });
