@@ -11,6 +11,9 @@
     "issues": "https://github.com/pvienneau/JSON-parser/issues",
     "license": "MIT",
     "main": "dist/index.js",
+    "pre-push": [
+        "test:build"
+    ],
     "scripts": {
         "build": "gulp build",
         "test": "babel-node jasmine.js",
