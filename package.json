@@ -29,6 +29,8 @@
         "jasmine": "^2.5.2"
     },
     "dependencies": {
-        "fs": "^0.0.1-security"
+        "codeclimate-test-reporter": "^0.4.0",
+        "fs": "^0.0.1-security",
+        "global": "^4.3.1"
     }
 }
