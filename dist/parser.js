@@ -10,16 +10,23 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var JSONParser = function () {
     function JSONParser(str) {
+        var strictMode = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
         _classCallCheck(this, JSONParser);
 
         this.input = str;
-        this.cc = 0;
+        this.strictMode = strictMode;
     }
 
     _createClass(JSONParser, [{
+        key: 'clean',
+        value: function clean(str) {
+            return this.eat(str, '');
+        }
+    }, {
         key: 'eat',
         value: function eat(str, exp) {
-            var regExp = new RegExp('^\\W*' + exp, 'i');
+            var regExp = new RegExp('^\\s*' + exp, 'i');
 
             if (typeof str != 'string') return false;
 
@@ -44,7 +51,7 @@ var JSONParser = function () {
                 result = r;
             } else if ((r = this.object(str)) !== false) {
                 result = r;
-            } else if ((r = this.litteral(str)) != false) {
+            } else if ((r = this.litteral(str)) !== false) {
                 result = r;
             } else if (isEmptyAllowed) {
                 // empty
@@ -52,21 +59,42 @@ var JSONParser = function () {
             }
 
             return result;
-
-            //return this.object(str) || this.array(str) || this.litteral(str);
         }
     }, {
         key: 'object',
         value: function object(str) {
+            var r = void 0;
+
             var result = this.eat(str, '{');
 
             if (result === false) return false;
 
-            return this.eat(result, '}');
+            if ((r = this.objectValue(result)) !== false) {
+                result = r;
+            }
+
+            result = this.eat(result, '}');
+
+            return result;
         }
     }, {
         key: 'objectValue',
-        value: function objectValue(str) {}
+        value: function objectValue(str) {
+            var result = void 0;
+            var r = void 0;
+
+            result = this.string(str);
+
+            result = this.eat(result, ':');
+
+            result = this.value(result);
+
+            if ((r = this.eat(result, ',')) !== false) {
+                result = this.objectValue(r);
+            }
+
+            return result;
+        }
     }, {
         key: 'array',
         value: function array(str) {
@@ -83,8 +111,6 @@ var JSONParser = function () {
         value: function arrayValue(str) {
             var isEmptyAllowed = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
 
-            if (this.cc++ > 10) return false;
-
             var result = void 0;
             var r = void 0;
 
@@ -95,13 +121,6 @@ var JSONParser = function () {
             }
 
             return result;
-
-            /*let result;
-            let r;
-             result = this.value(str);
-             if(isCommaExpected) result = this.eat(result, ',');
-             if((r = this.arrayValue(result)) !== false) result = r;
-             return result;*/
         }
     }, {
         key: 'litteral',
@@ -109,9 +128,13 @@ var JSONParser = function () {
             var r = void 0;
             var result = void 0;
 
-            if (r = this.integer(str)) {
+            if ((r = this.integer(str)) !== false) {
                 result = r;
-            } else if (r = this.string(str)) {
+            } else if ((r = this.string(str)) !== false) {
+                result = r;
+            } else if ((r = this.boolean(str)) !== false) {
+                result = r;
+            } else if ((r = this.null(str)) !== false) {
                 result = r;
             } else {
                 return false;
@@ -122,12 +145,35 @@ var JSONParser = function () {
     }, {
         key: 'integer',
         value: function integer(str) {
-            return this.eat(str, '[0-9]+');
+            return this.eat(str, '-?[0-9]+(\\.[0-9]*)?(e[0-9]+)?');
+        }
+    }, {
+        key: '_isStrictMode',
+        value: function _isStrictMode() {
+            return !!this.strictMode;
+        }
+    }, {
+        key: '_getStringExpression',
+        value: function _getStringExpression() {
+            var strictExpression = '"(\\\\(?:[bfnrt\\\\\/"]|u[0-9a-f])|[^"\\\\])*"';
+            var nonStrictExpression = '"(\\\\"|[^"])*"';
+
+            return this._isStrictMode() ? strictExpression : nonStrictExpression;
         }
     }, {
         key: 'string',
         value: function string(str) {
-            return this.eat(str, '"[^"]*"');
+            return this.eat(str, this._getStringExpression());
+        }
+    }, {
+        key: 'boolean',
+        value: function boolean(str) {
+            return this.eat(str, 'true|false');
+        }
+    }, {
+        key: 'null',
+        value: function _null(str) {
+            return this.eat(str, 'null');
         }
     }, {
         key: 'empty',
@@ -142,7 +188,7 @@ var JSONParser = function () {
         value: function parse() {
             var str = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.input;
 
-            return this.value(str, false) === '';
+            return this.clean(this.value(str, false)) === '';
         }
     }]);
 

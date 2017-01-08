@@ -27,5 +27,7 @@
         "gulp-util": "^3.0.8",
         "jasmine": "^2.5.2"
     },
-    "dependencies": {}
+    "dependencies": {
+        "fs": "^0.0.1-security"
+    }
 }
