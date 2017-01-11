@@ -19,8 +19,8 @@ var JSONParser = function () {
 
     _createClass(JSONParser, [{
         key: 'clean',
-        value: function clean(str) {
-            return this.eat(str, '');
+        value: function clean() {
+            return this.eat('');
         }
     }, {
         key: 'eat',
@@ -65,9 +65,11 @@ var JSONParser = function () {
         key: 'parse',
         value: function parse(str) {
             this.edibleString = '' + str;
-            this.schema.nonEmptyValue();
+            var result = this.schema.nonEmptyValue();
 
-            return this.edibleString == '';
+            this.clean();
+
+            return result && !this.edibleString.length;
         }
     }]);
 

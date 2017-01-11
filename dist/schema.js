@@ -15,8 +15,9 @@ exports.default = function () {
         object: function object(schema) {
             return schema.parensLeft() && schema.objectValue() && schema.parensRight();
         },
+        //objectValue: (schema) => schema.empty() || (schema.strictString() && schema.colon() && schema.value() && ((schema.comma() && schema.objectValue()) || schema.empty())),
         objectValue: function objectValue(schema) {
-            return schema.empty() || schema.strictString() && schema.colon() && schema.value() && (schema.comma() && schema.objectValue() || schema.empty());
+            return schema.strictString() && schema.colon() && schema.value() && (schema.comma() && schema.objectValue() || schema.empty()) || schema.empty();
         },
         array: function array(schema) {
             return schema.bracketLeft() && schema.arrayValue() && schema.bracketRight();
