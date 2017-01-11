@@ -1,6 +1,7 @@
 import fs from 'fs';
 
 import Parser from '../dist/index.js';
+import schema from '../dist/schema.js';
 // Use the command `window:run-package-specs` (cmd-alt-ctrl-p) to run specs.
 //
 // To run a specific `it` or `describe` block add an `f` to the front (e.g. `fit`
@@ -10,48 +11,66 @@ describe('Parser', () => {
     let parser;
 
     beforeEach(() => {
-        parser = new Parser();
+        parser = new Parser(schema);
     });
 
     describe('eat()', () => {
         it('should eat the provided regular expression', () => {
             const value = 'abc123';
+            parser.edibleString = value;
 
-            expect(parser.eat(value, 'abc')).toBe('123');
+            parser.eat('abc');
+
+            expect(parser.edibleString).toBe('123');
         });
 
         it('should return an empty string if the whole string has been eatedn', () => {
             const value = 'abc';
+            parser.edibleString = value;
 
-            expect(parser.eat(value, 'abc')).toBe('');
+            parser.eat('abc');
+
+            expect(parser.edibleString).toBe('');
         });
 
         it('should eat the provided regular expression', () => {
             const value = '{}';
+            parser.edibleString = value;
 
-            expect(parser.eat(value, '{')).toBe('}');
+            parser.eat('{');
+
+            expect(parser.edibleString).toBe('}');
         });
 
         it('should return false if regular expression is not matched', () => {
             const value = 'abc123';
+            parser.edibleString = value;
 
-            expect(parser.eat(value, '123')).toBeFalsy();
+            expect(parser.eat(123)).toBeFalsy();
         });
 
         it('should return false if the input is not a string', () => {
-            expect(parser.eat(false, '123')).toBeFalsy();
+            parser.edibleString = false;
+
+            expect(parser.eat('123')).toBeFalsy();
         });
 
         it('should return false if the input is an empty string', () => {
-            expect(parser.eat('', '123')).toBeFalsy();
+            parser.edibleString = '';
+
+            expect(parser.eat('123')).toBeFalsy();
         });
 
         it('should correctly eat even if whitespaces are present at the start of the string', () => {
-            expect(parser.eat(' abc123', 'abc')).toBe('123')
+            parser.edibleString = ' abc123';
+
+            parser.eat('abc');
+
+            expect(parser.edibleString).toBe('123');
         });
     });
 
-    describe('integer()', () => {
+    /*describe('integer()', () => {
         it('should correctly handle negative numbers', () => {
             expect(parser.integer('-123ok')).toBe('ok');
         });
@@ -73,18 +92,7 @@ describe('Parser', () => {
         it('should allow for escaped double quotes', () => {
             expect(parser.string('"The quote says: \\"This is my life\\""ok')).toBe('ok');
         });
-
-        /*it('should accept all allowable escaped characters, as per the ECMA-404 JSON standard, when in strict mode', () => {
-            const value = '"abc\"\\\/\b\f\n\r\t\u12df"';
-            parser = new Parser(null, true);
-
-            expect(parser.string(value)).toBeTruthy();
-
-            expect(parser.parse('"\\u12os"')).toBeFalsy();
-            expect(parser.parse('"\\l"'));
-            expect(parser.parse('"\\."'));
-        });*/
-    });
+    });*/
 
     describe('parse()', () => {
         it('should not pass for an empty value', () => {
