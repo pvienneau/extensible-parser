@@ -13,6 +13,8 @@ var JSONParser = function () {
         _classCallCheck(this, JSONParser);
 
         this.register(schema);
+
+        this.rebuiltString = '';
     }
 
     _createClass(JSONParser, [{
@@ -31,6 +33,7 @@ var JSONParser = function () {
 
             if (!string.match(regExp)) return false;
 
+            this.rebuiltString += 'a';
             this.edibleString = string.replace(regExp, '');
 
             return true;
@@ -62,7 +65,9 @@ var JSONParser = function () {
         key: 'parse',
         value: function parse(str) {
             this.edibleString = '' + str;
-            return this.schema.nonEmptyValue();
+            this.schema.nonEmptyValue();
+
+            return this.edibleString == '';
         }
     }]);
 
