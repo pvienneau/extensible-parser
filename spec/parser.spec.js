@@ -2,6 +2,10 @@ import fs from 'fs';
 
 import Parser from '../dist/index.js';
 import schema from '../dist/schema.js';
+import { spy } from 'sinon';
+
+const JSONNodes = schema();
+
 // Use the command `window:run-package-specs` (cmd-alt-ctrl-p) to run specs.
 //
 // To run a specific `it` or `describe` block add an `f` to the front (e.g. `fit`
@@ -177,6 +181,81 @@ describe('Parser', () => {
             const result = parser.parse(value);
 
             expect(result).toBeTruthy();
+        });
+    });
+
+    describe('lookahead callback', () => {
+        const literal = 'hello world';
+        let schema = {};
+
+        beforeEach(() => {
+            schema = {
+                node: schema => schema.literal(),
+                literal: schema => literal,
+            };
+
+            parser = new Parser(() => schema);
+        });
+
+        it('should allow to define a callback to a node lookup', () => {
+            const callback = spy();
+
+            schema.node = schema => schema.literal(callback);
+            parser = new Parser(() => schema);
+            parser.parse(literal, 'node');
+
+            expect(callback.called).toBeTruthy();
+        });
+
+        it('should provide the callback the resulting string found for the given node lookup', () => {
+            let resultingNextNode = null;
+            let expectedNextNode = 'hello world';
+            let result;
+
+            schema.node = schema => schema.literal(node => {
+                resultingNextNode = node;
+            });
+            parser = new Parser(() => schema);
+            result = parser.parse(expectedNextNode, 'node');
+
+            expect(result).toBeTruthy();
+            expect(resultingNextNode).toEqual(expectedNextNode);
+        });
+
+        it('should call the correct callbacks in a complex set of parsing rules (compound rules)', () => {
+            let callback = spy();
+            let result;
+
+            schema = () => ({
+                twoWordSentence: schema => schema.word(callback) && schema.word(callback),
+                word: schema => '[a-z]+',
+            });
+
+            parser = new Parser(schema);
+            result = parser.parse(literal, 'twoWordSentence');
+
+            expect(result).toBeTruthy();
+            expect(callback.callCount).toBe(2);
+        });
+
+        it('should call the correct callbacks in a complex set of parsing rules (alternative rules)', () => {
+            let callback = spy();
+            let shouldNotBeExecutedCallback = spy();
+            let result;
+
+            schema = () => ({
+                twoElementSentence: schema => schema.element() && schema.element(),
+                element: schema => schema.number(shouldNotBeExecutedCallback) || schema.word(callback),
+                word: () => '[a-z]+',
+                number: () => '[0-9]+',
+            });
+
+            parser = new Parser(schema);
+            result = parser.parse(literal, 'twoElementSentence');
+
+            expect(result).toBeTruthy();
+            expect(callback.callCount).toBe(2);
+            expect(shouldNotBeExecutedCallback.called).toBeFalsy();
         });
     });
 });

@@ -26,17 +26,20 @@ var JSONParser = function () {
         key: 'eat',
         value: function eat(exp) {
             var string = this.edibleString;
-
             var regExp = new RegExp('^\\s*' + exp, 'i');
+
+            var matchedString = false;
 
             if (typeof string !== 'string') return false;
 
-            if (!string.match(regExp)) return false;
+            if (!(matchedString = string.match(regExp))) return false;
+
+            matchedString = matchedString[0];
 
             this.rebuiltString += 'a';
             this.edibleString = string.replace(regExp, '');
 
-            return true;
+            return matchedString;
         }
     }, {
         key: 'register',
@@ -47,7 +50,7 @@ var JSONParser = function () {
             this.schema = {};
 
             Object.keys(ss).map(function (rule_name) {
-                var execute = function execute(rule, rule_name) {
+                var execute = function execute(rule, rule_name, callback) {
 
                     var result = rule();
 
@@ -55,7 +58,9 @@ var JSONParser = function () {
                         result = _this.eat(result);
                     }
 
-                    return result;
+                    if (!!callback && !!result) callback(result);
+
+                    return !!result;
                 };
 
                 _this.schema[rule_name] = execute.bind(_this, ss[rule_name].bind(_this, _this.schema), rule_name);
@@ -64,8 +69,10 @@ var JSONParser = function () {
     }, {
         key: 'parse',
         value: function parse(str) {
+            var startFn = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'nonEmptyValue';
+
             this.edibleString = '' + str;
-            var result = this.schema.nonEmptyValue();
+            var result = this.schema[startFn].call(this);
 
             this.clean();
 
