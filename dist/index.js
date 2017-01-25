@@ -23,10 +23,15 @@ var JSONParser = function () {
             return this.eat('');
         }
     }, {
+        key: 'regExp',
+        value: function regExp(expression) {
+            return new RegExp('^\\s*' + expression, 'i');
+        }
+    }, {
         key: 'eat',
         value: function eat(exp) {
             var string = this.edibleString;
-            var regExp = new RegExp('^\\s*' + exp, 'i');
+            var regExp = this.regExp(exp);
 
             var matchedString = false;
 
@@ -36,7 +41,6 @@ var JSONParser = function () {
 
             matchedString = matchedString[0];
 
-            this.rebuiltString += 'a';
             this.edibleString = string.replace(regExp, '');
 
             return matchedString;
@@ -51,14 +55,35 @@ var JSONParser = function () {
 
             Object.keys(ss).map(function (rule_name) {
                 var execute = function execute(rule, rule_name, callback) {
-
                     var result = rule();
+                    var regExpression = void 0;
 
                     if (typeof result == 'string') {
-                        result = _this.eat(result);
+                        regExpression = result;
+                        result = _this.eat(regExpression);
                     }
 
-                    if (!!callback && !!result) callback(result);
+                    if (!!callback && !!result) {
+
+                        var parameters = [result];
+                        if (regExpression) {
+                            (function () {
+                                var matches = _this.regExp(regExpression).exec(result);
+                                var params = Object.keys(matches).filter(function (key) {
+                                    return !isNaN(key) && parseInt(key);
+                                }).map(function (key) {
+                                    return matches[key];
+                                });
+                                parameters = parameters.concat(params);
+                            })();
+                        }
+
+                        var callbackResult = callback.apply(null, parameters);
+
+                        if (typeof callbackResult === 'string') result = callbackResult;
+                    }
+
+                    if (typeof result === 'string') _this.rebuiltString += result;
 
                     return !!result;
                 };

@@ -258,4 +258,55 @@ describe('Parser', () => {
             expect(shouldNotBeExecutedCallback.called).toBeFalsy();
         });
     });
+
+    describe('function node', () => {
+        let schema = {};
+
+        beforeEach(() => {
+            schema = {
+                node: schema => schema.function()
+            };
+
+            parser = new Parser(() => schema);
+        });
+
+        it('should return the proper value from a custom function node', () => {
+            const expectedValue = 'static_string';
+            let result;
+
+            schema = {
+                node: schema => schema.function(() => expectedValue),
+                function: schema => 'function\\(\\)',
+            };
+
+            parser = new Parser(() => schema);
+            result = parser.parse('function()', 'node');
+
+            expect(result).toBeTruthy();
+            expect(parser.rebuiltString).toBe(expectedValue);
+        });
+
+        it('should pass capture groups to the lookahead callback', () => {
+            const expectedValue = 'aaaaa';
+            let result;
+
+            schema = {
+                node: schema => schema.repeat((node, repeatCount) => {
+
+                    let str = '';
+                    for (let ii = 0; ii < repeatCount; ii++) {
+                        str += 'a';
+                    }
+                    return str;
+                }),
+                repeat: schema => 'repeat\\(([0-9]+)\\)',
+            };
+
+            parser = new Parser(() => schema);
+            result = parser.parse('repeat(5)', 'node');
+
+            expect(result).toBeTruthy();
+            expect(parser.rebuiltString).toBe(expectedValue);
+        });
+    });
 });
