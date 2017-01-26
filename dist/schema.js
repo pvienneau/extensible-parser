@@ -66,3 +66,21 @@ exports.default = function () {
         }
     };
 };
+
+/* () => ({
+    liquid: schema => schema.doubleBraceOpen() && schema.transformationFunctions() && schema.doubleBraceClose(),
+    doubleBraceOpen: () => '{{',
+    doubleBraceClose: () => '}}',
+    transformationFunctions: schema => schema.repeat((rawNode, repeatCount = 1) => {
+        let result = '';
+
+        for (let ii = 0; ii < repeatCount; ii++) {
+            result += schema.repeatableValue(rawNode);
+        }
+
+        return result;
+    }),
+    repeat: () => 'repeat\\(([0-9]+)\\)',
+    nonEmptyValue: (schema) => schema.array() || schema.object() || schema.literal(),
+    ...
+}); */

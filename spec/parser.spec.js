@@ -6,11 +6,6 @@ import { spy } from 'sinon';
 
 const JSONNodes = schema();
 
-// Use the command `window:run-package-specs` (cmd-alt-ctrl-p) to run specs.
-//
-// To run a specific `it` or `describe` block add an `f` to the front (e.g. `fit`
-// or `fdescribe`). Remove the `f` to unfocus the block.
-
 describe('Parser', () => {
     let parser;
 
@@ -181,6 +176,72 @@ describe('Parser', () => {
             const result = parser.parse(value);
 
             expect(result).toBeTruthy();
+        });
+
+        it('should pass without throwing a cylical error as long as there is a mean to complete the parse', () => {
+            const input = 'abcdef';
+            const schema = {
+                node: schema => schema.word(),
+                word: schema => schema.letter() && (schema.letter() || schema.empty()),
+                letter: () => '[a-z]',
+                empty: () => true,
+            };
+
+            const parseExecution = () => {
+                parser = new Parser(() => schema);
+                parser.parse(input, 'node');
+            }
+            const parseExecutionSpy = spy(parseExecution);
+
+            try{
+                parseExecution();
+            }catch(e){
+
+            }
+
+            expect(parseExecutionSpy.threw()).toBeFalsy();
+        });
+    });
+
+    describe('rebuiltString', () => {
+        let schema = {};
+
+        beforeEach(() => {
+            schema = {
+                node: schema => schema.number(),
+                number: schema => (schema.one() || schema.two() || schema.three() || schema.four()) && (schema.number() || schema.empty()),
+                one: () => '1',
+                two: () => '2',
+                three: () => '3',
+                four: () => '4',
+                empty: () => true,
+            };
+
+            parser = new Parser(() => schema);
+        });
+
+        it('should rebuild the correct string as it parses the provided input', () => {
+            const input = '3214';
+
+            expect(parser.parse(input, 'node')).toBeTruthy();
+            expect(parser.rebuiltString).toBe(input);
+        });
+
+        it('should rebuild the correct string as it parses the input even if it dives into the wrong node branch', () => {
+            const input = '1312';
+            schema = {
+                node: schema => schema.oneAndTwo() || schema.oneAndThree(),
+                oneAndTwo: schema => schema.one() && schema.two(),
+                oneAndThree: schema => schema.one() && schema.three(),
+                one: () => '1',
+                two: () => '2',
+                three: () => '3',
+            };
+
+            parser = new Parser(() => schema);
+
+            expect(parser.parse(input, 'node')).toBeTruthy();
+            expect(parser.rebuiltString).toBe(input);
         });
     });
 
