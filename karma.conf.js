@@ -16,7 +16,7 @@ module.exports = function(config) {
             }
         },
         frameworks: [
-            'jspm', 'jasmine'
+            'jspm', 'jasmine', 'sinon'
         ],
         plugins: [
             'karma-babel-preprocessor',
@@ -24,12 +24,13 @@ module.exports = function(config) {
             'karma-jasmine',
             'karma-coverage',
             'karma-phantomjs-launcher',
-            'karma-sourcemap-loader'
+            'karma-sourcemap-loader',
+            'karma-sinon'
         ],
         jspm: {
             config: 'jspm/config.js',
             loadFiles: ['src/*.spec.js'],
-            serveFiles: ['src/!(*spec).js']
+            serveFiles: ['src/!(*spec).js', 'src/*/!(*spec).js']
         },
         proxies: {
             '/src/': '/base/src/',
@@ -39,7 +40,9 @@ module.exports = function(config) {
         reporters: [
             'coverage', 'progress'
         ],
-        files: ['node_modules/babel-polyfill/dist/polyfill.js'],
+        files: [
+            'node_modules/babel-polyfill/dist/polyfill.js'
+        ],
         coverageReporter: {
             instrumenters: {
                 isparta: require('isparta')
