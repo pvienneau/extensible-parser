@@ -11,13 +11,14 @@
     "issues": "https://github.com/pvienneau/JSON-parser/issues",
     "license": "MIT",
     "main": "dist/index.js",
+    "scripts": {
+        "build": "gulp build",
+        "test": "karma start karma.conf.js",
+        "test:ci": "karma start karma.ci.conf.js"
+    },
     "pre-push": [
         "test:build"
     ],
-    "scripts": {
-        "build": "gulp build",
-        "test": "karma start karma.conf.js"
-    },
     "devDependencies": {
         "babel-cli": "^6.18.0",
         "babel-eslint": "^7.1.1",
