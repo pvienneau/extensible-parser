@@ -1,6 +1,6 @@
 {
     "name": "json-parser",
-    "version": "0.0.0",
+    "version": "2.0.0",
     "description": "A simple JSON parser.",
     "author": "Patrick Vienneau",
     "keywords": [
@@ -13,8 +13,7 @@
     "main": "dist/index.js",
     "scripts": {
         "build": "gulp build",
-        "test": "karma start karma.conf.js",
-        "test:ci": "karma start ci.karma.conf.js"
+        "test": "karma start karma.conf.js"
     },
     "pre-push": [
         "test:build"
