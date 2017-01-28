@@ -16,7 +16,7 @@
     ],
     "scripts": {
         "build": "gulp build",
-        "test": "karma start karma.conf.js; exit 0"
+        "test": "karma start karma.conf.js"
     },
     "devDependencies": {
         "babel-cli": "^6.18.0",

@@ -258,11 +258,13 @@ describe('saveNodeImage()', () => {
         const result = schema.saveNodeImage(childSchema);
 
         expect(result).toBeTruthy();
-        expect(schema.tree).toEqual({
-            input: input,
-            eatenInput: '',
-            tree: []
-        });
+        expect(schema.tree).toEqual([
+            {
+                input: input,
+                eatenInput: '',
+                tree: []
+            }
+        ]);
     });
 
     it('should return false and not save an image if no schema is provided', () => {
