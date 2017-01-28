@@ -14,7 +14,7 @@
     "scripts": {
         "build": "gulp build",
         "test": "karma start karma.conf.js",
-        "test:ci": "karma start karma.ci.conf.js"
+        "test:ci": "karma start ci.karma.conf.js"
     },
     "pre-push": [
         "test:build"
