@@ -25,7 +25,8 @@ module.exports = function(config) {
             'karma-coverage',
             'karma-phantomjs-launcher',
             'karma-sourcemap-loader',
-            'karma-sinon'
+            'karma-sinon',
+            'karma-coveralls'
         ],
         jspm: {
             config: 'jspm/config.js',
