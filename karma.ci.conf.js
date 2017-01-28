@@ -4,7 +4,7 @@ module.exports = function(config) {
         autoWatch: true,
         singleRun: true,
         preprocessors: {
-            'src/!(*spec).js': ['babel', 'sourcemap']
+            'src/!(*spec).js': ['babel', 'sourcemap', 'coverage']
         },
 
         babelPreprocessor: {
@@ -22,9 +22,11 @@ module.exports = function(config) {
             'karma-babel-preprocessor',
             'karma-jspm',
             'karma-jasmine',
+            'karma-coverage',
             'karma-phantomjs-launcher',
             'karma-sourcemap-loader',
-            'karma-sinon'
+            'karma-sinon',
+            'karma-coveralls'
         ],
         jspm: {
             config: 'jspm/config.js',
@@ -36,9 +38,27 @@ module.exports = function(config) {
             '/jspm_packages/': '/base/jspm/jspm_packages/'
         },
         browsers: ['PhantomJS'],
-        reporters: ['progress'],
+        reporters: [
+            'coverage', 'progress', 'coveralls'
+        ],
         files: [
             'node_modules/babel-polyfill/dist/polyfill.js'
-        ]
+        ],
+        coverageReporter: {
+            instrumenters: {
+                isparta: require('isparta')
+            },
+            instrumenter: {
+                'src/*.js': 'isparta'
+            },
+            reporters: [
+                {
+                    type: 'text-summary'
+                }, {
+                    type: 'lcov',
+                    dir: 'coverage/'
+                }
+            ]
+        }
     });
 };
