@@ -2,6 +2,8 @@ machine:
   environment:
     YARN_VERSION: 0.18.1
     PATH: "${PATH}:${HOME}/.yarn/bin:${HOME}/${CIRCLE_PROJECT_REPONAME}/node_modules/.bin"
+    COVERALLS_REPO_TOKEN: "ao43YvjAZQjlT3WcuvGYd9ZoTZZ6EKiTz"
+    CIRCLE_ARTIFACTS: "~/node-p2pool/coverage"
 
 dependencies:
   pre:
@@ -17,6 +19,10 @@ dependencies:
   cache_directories:
     - ~/.yarn
     - ~/.cache/yarn
+
+general:
+  artifacts:
+    - "coverage"
 
 test:
   override:
