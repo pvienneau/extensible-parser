@@ -38,7 +38,7 @@ module.exports = function(config) {
         },
         browsers: ['PhantomJS'],
         reporters: [
-            'coverage', 'progress'
+            'coverage', 'progress', 'coveralls'
         ],
         files: [
             'node_modules/babel-polyfill/dist/polyfill.js'
@@ -54,7 +54,7 @@ module.exports = function(config) {
                 {
                     type: 'text-summary'
                 }, {
-                    type: 'html',
+                    type: 'lcov',
                     dir: 'coverage/'
                 }
             ]
