@@ -224,7 +224,7 @@ describe('Schema', () => {
     });
 });
 
-describe('eat()', () => {
+/*describe('eat()', () => {
     it('should return true if the regexp matches the provided string', () => {
         const schema = new Schema();
 
@@ -276,7 +276,7 @@ describe('saveNodeImage()', () => {
         expect(result).toBeFalsy();
         expect(schema.tree).toEqual([]);
     });
-});
+});*/
 
 describe('parse()', () => {
     it('should pass if the full input has been parsed successfully', () => {
