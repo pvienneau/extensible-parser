@@ -8,8 +8,10 @@ A simple JSON parser.
 ## How to use
 
 ```
-const json = '{"some":["json", "to", "validate"]}';
-let parser = new Parser(json);
+const input = '{"some":["json", "to", "validate"]}';
+const map = require('./examples/json');
 
-parser.parse();
+const schema = new Schema(map, input);
+
+if (schema.parse('nonEmptyValue')) alert('Yay! That's some valid JSON!');
 ```
