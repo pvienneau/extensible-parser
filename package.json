@@ -1,5 +1,5 @@
 {
-    "name": "json-parser",
+    "name": "extensible-parser",
     "version": "2.0.0",
     "description": "A simple JSON parser.",
     "author": "Patrick Vienneau",
