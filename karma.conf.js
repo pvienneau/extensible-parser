@@ -4,13 +4,27 @@ module.exports = function(config) {
         autoWatch: true,
         singleRun: true,
         preprocessors: {
-            'src/!(*spec).js': ['babel', 'coverage']
+            'src/!(*spec).js': ['babel', 'sourcemap', 'coverage']
+        },
+
+        babelPreprocessor: {
+            options: {
+                sourceMap: 'inline'
+            },
+            sourceFileName: function(file) {
+                return file.originalPath;
+            }
         },
         frameworks: [
             'jspm', 'jasmine'
         ],
         plugins: [
-            'karma-babel-preprocessor', 'karma-jspm', 'karma-jasmine', 'karma-coverage', 'karma-phantomjs-launcher'
+            'karma-babel-preprocessor',
+            'karma-jspm',
+            'karma-jasmine',
+            'karma-coverage',
+            'karma-phantomjs-launcher',
+            'karma-sourcemap-loader'
         ],
         jspm: {
             config: 'jspm/config.js',
