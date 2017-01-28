@@ -27,5 +27,3 @@ general:
 test:
   override:
     - yarn test
-  post:
-    - coveralls
