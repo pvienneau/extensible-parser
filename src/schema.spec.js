@@ -24,7 +24,7 @@ describe('Schema', () => {
 
     it('should provide a Schema class instance to each node function when executed', () => {
         const map = {
-            node: spy(() => true)
+            node: spy(() => true),
         };
         const schema = new Schema(map);
 
@@ -72,7 +72,7 @@ describe('Schema', () => {
     it('should reduce the provided input by the matched string', () => {
         const input = 'abc123';
         const map = {
-            threeLetters: () => '[a-z]{3}'
+            threeLetters: () => '[a-z]{3}',
         };
         const schema = new Schema(map, input);
 
@@ -143,7 +143,7 @@ describe('Schema', () => {
                 input: '',
                 eatenInput: 'abc',
                 tree: [],
-            }
+            },
         ]);
     });
 
@@ -174,7 +174,7 @@ describe('Schema', () => {
                         tree: [],
                     },
                 ],
-            }
+            },
         ]);
     });
 
@@ -262,8 +262,8 @@ describe('saveNodeImage()', () => {
             {
                 input: input,
                 eatenInput: '',
-                tree: []
-            }
+                tree: [],
+            },
         ]);
     });
 
