@@ -26,4 +26,4 @@ general:
 
 test:
   override:
-    - yarn test
+    - yarn test:coverage
