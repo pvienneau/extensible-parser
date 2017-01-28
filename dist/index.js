@@ -8,104 +8,108 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var JSONParser = function () {
-    function JSONParser(schema) {
-        _classCallCheck(this, JSONParser);
+var Schema = function () {
+    function Schema() {
+        var _this = this;
 
-        this.register(schema);
+        var map = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+        var input = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
 
-        this.rebuiltString = '';
+        _classCallCheck(this, Schema);
+
+        this.input = input;
+        this.eatenInput = '';
+        this.tree = [];
+
+        Object.keys(map).map(function (name) {
+            _this[name] = function () {
+                var callback = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+
+                var schema = new Schema(map, _this.input);
+
+                var result = map[name](schema);
+
+                if (typeof result === 'string') result = schema.eat(result, schema.input);
+
+                if (!result) return false;
+
+                if (callback) {
+                    if (_this.isExplicitFalseReturn(callback())) return false;
+                }
+
+                //end of execution of node
+                _this.saveNodeImage(schema);
+
+                _this.input = schema.input;
+                _this.eatenInput += schema.eatenInput;
+
+                return true;
+            };
+        });
+
+        this.regExp = this.regExp.bind(this);
+        this.eat = this.eat.bind(this);
     }
 
-    _createClass(JSONParser, [{
-        key: 'clean',
-        value: function clean() {
-            return this.eat('');
-        }
-    }, {
+    _createClass(Schema, [{
         key: 'regExp',
         value: function regExp(expression) {
             return new RegExp('^\\s*' + expression, 'i');
         }
     }, {
         key: 'eat',
-        value: function eat(exp) {
-            var string = this.edibleString;
-            var regExp = this.regExp(exp);
+        value: function eat() {
+            var expression = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+            var string = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
 
-            var matchedString = false;
+            if (!expression || !string || typeof string !== 'string') return false;
 
-            if (typeof string !== 'string') return false;
+            var matchedString = void 0;
 
-            if (!(matchedString = string.match(regExp))) return false;
+            var result = this.regExp(expression).exec(string);
 
-            matchedString = matchedString[0];
+            if (!result) return false;
 
-            this.edibleString = string.replace(regExp, '');
+            this.eatenInput += result[0];
+            this.input = this.input.substr(result[0].length);
 
-            return matchedString;
+            return true;
         }
     }, {
-        key: 'register',
-        value: function register(s) {
-            var _this = this;
+        key: 'isExplicitFalseReturn',
+        value: function isExplicitFalseReturn(retrn) {
+            return !retrn && retrn !== undefined;
+        }
+    }, {
+        key: 'saveNodeImage',
+        value: function saveNodeImage() {
+            var schema = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
-            var ss = s();
-            this.schema = {};
+            var nodeImage = {
+                input: schema.input,
+                eatenInput: schema.eatenInput,
+                tree: schema.tree
+            };
 
-            Object.keys(ss).map(function (rule_name) {
-                var execute = function execute(rule, rule_name, callback) {
-                    var result = rule();
-                    var regExpression = void 0;
+            this.tree.push(nodeImage);
 
-                    if (typeof result == 'string') {
-                        regExpression = result;
-                        result = _this.eat(regExpression);
-                    }
-
-                    if (!!callback && !!result) {
-
-                        var parameters = [result];
-                        if (regExpression) {
-                            (function () {
-                                var matches = _this.regExp(regExpression).exec(result);
-                                var params = Object.keys(matches).filter(function (key) {
-                                    return !isNaN(key) && parseInt(key);
-                                }).map(function (key) {
-                                    return matches[key];
-                                });
-                                parameters = parameters.concat(params);
-                            })();
-                        }
-
-                        var callbackResult = callback.apply(null, parameters);
-
-                        if (typeof callbackResult === 'string') result = callbackResult;
-                    }
-
-                    if (typeof result === 'string') _this.rebuiltString += result;
-
-                    return !!result;
-                };
-
-                _this.schema[rule_name] = execute.bind(_this, ss[rule_name].bind(_this, _this.schema), rule_name);
-            });
+            return nodeImage;
         }
     }, {
         key: 'parse',
-        value: function parse(str) {
-            var startFn = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'nonEmptyValue';
+        value: function parse() {
+            var nodeFn = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
 
-            this.edibleString = '' + str;
-            var result = this.schema[startFn].call(this);
+            if (!nodeFn) {
+                console.error('You need to specify what node to call first');
+                return false;
+            }
 
-            this.clean();
-
-            return result && !this.edibleString.length;
+            return this[nodeFn] ? this[nodeFn]() : false;
         }
     }]);
 
-    return JSONParser;
+    return Schema;
 }();
 
-exports.default = JSONParser;
+exports.default = Schema;

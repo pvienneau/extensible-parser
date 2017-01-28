@@ -1,373 +1,356 @@
 import fs from 'fs';
 
-import Parser from '../dist/index.js';
-import schema from '../dist/schema.js';
-import { spy } from 'sinon';
+import Schema from '../dist/index.js';
+import jsonSchemaMap from '../examples/json';
 
-const JSONNodes = schema();
+import { spy, stub, mock } from 'sinon';
 
-describe('Parser', () => {
-    let parser;
-
-    beforeEach(() => {
-        parser = new Parser(schema);
+describe('Schema', () => {
+    it('should instantiate', () => {
+        const schema = new Schema();
     });
 
-    describe('eat()', () => {
-        it('should eat the provided regular expression', () => {
-            const value = 'abc123';
-            parser.edibleString = value;
+    it('should generate a method for each node passed through the schema map', () => {
+        const map = {
+            node: () => {},
+            word: () => {},
+        };
+        const schema = new Schema(map);
 
-            parser.eat('abc');
-
-            expect(parser.edibleString).toBe('123');
-        });
-
-        it('should return an empty string if the whole string has been eatedn', () => {
-            const value = 'abc';
-            parser.edibleString = value;
-
-            parser.eat('abc');
-
-            expect(parser.edibleString).toBe('');
-        });
-
-        it('should eat the provided regular expression', () => {
-            const value = '{}';
-            parser.edibleString = value;
-
-            parser.eat('{');
-
-            expect(parser.edibleString).toBe('}');
-        });
-
-        it('should return false if regular expression is not matched', () => {
-            const value = 'abc123';
-            parser.edibleString = value;
-
-            expect(parser.eat(123)).toBeFalsy();
-        });
-
-        it('should return false if the input is not a string', () => {
-            parser.edibleString = false;
-
-            expect(parser.eat('123')).toBeFalsy();
-        });
-
-        it('should return false if the input is an empty string', () => {
-            parser.edibleString = '';
-
-            expect(parser.eat('123')).toBeFalsy();
-        });
-
-        it('should correctly eat even if whitespaces are present at the start of the string', () => {
-            parser.edibleString = ' abc123';
-
-            parser.eat('abc');
-
-            expect(parser.edibleString).toBe('123');
+        Object.keys(map).map(name => {
+            expect(schema[name]).not.toBeUndefined();
         });
     });
 
-    /*describe('integer()', () => {
-        it('should correctly handle negative numbers', () => {
-            expect(parser.integer('-123ok')).toBe('ok');
-        });
+    it('should provide a Schema class instance to each node function when executed', () => {
+        const map = {
+            node: spy(() => true)
+        };
+        const schema = new Schema(map);
 
-        it('should correctly handle decimals', () => {
-            expect(parser.integer('1.123ok')).toBe('ok');
-        });
+        schema.node();
 
-        it('should correctly handle scientific notation numbers', () => {
-            expect(parser.integer('1e12ok')).toBe('ok');
+        expect(map.node.calledOnce).toBeTruthy();
+        expect(map.node.args[0][0] instanceof Schema).toBeTruthy();
+        expect(map.node.args[0][0]).not.toEqual(schema);
+    });
+
+    it('should provide a new Schema instance for every new node function called', () => {
+        const map = {
+            level_1: spy(schema => schema.level_2_1() && schema.level_2_2()),
+            level_2_1: spy(schema => schema.level_3_1() && schema.level_3_2()),
+            level_2_2: spy(schema => schema.level_4_1() && schema.level_4_2()),
+            level_3_1: spy(() => true),
+            level_3_2: spy(() => true),
+            level_4_1: spy(() => true),
+            level_4_2: spy(() => true),
+        };
+        const schema = new Schema(map);
+
+        const nodeSchema = schema.level_1();
+
+        Object.keys(map).map(node => {
+            Object.keys(map)
+                .filter(n => node !== n)
+                .map(n => {
+                    expect(map[node].args[0][0]).not.toEqual(map[n].args[0][0]);
+                });
         });
     });
 
-    describe('string()', () => {
-        it('should correectly handle a double quoted string', () => {
-            expect(parser.string('"This is a string"ok')).toBe('ok');
-        });
+    it('should register an input value', () => {
+        const input = 'Hello World.';
+        const map = {
+            node: schema => schema.word(),
+            word: () => true,
+        }
+        const schema = new Schema(map, input);
 
-        it('should allow for escaped double quotes', () => {
-            expect(parser.string('"The quote says: \\"This is my life\\""ok')).toBe('ok');
-        });
-    });*/
+        expect(schema.input).toEqual(input);
+    });
 
-    describe('parse()', () => {
-        it('should not pass for an empty value', () => {
-            const value = '';
-            const result = parser.parse(value);
+    it('should reduce the provided input by the matched string', () => {
+        const input = 'abc123';
+        const map = {
+            threeLetters: () => '[a-z]{3}'
+        };
+        const schema = new Schema(map, input);
 
-            expect(result).toBeFalsy();
-        });
+        schema.threeLetters();
 
-        it('should pass for an empty object', () => {
-            const value = '{}';
-            const result = parser.parse(value);
+        expect(schema.input).toBe(input.substring(3));
+        expect(schema.eatenInput).toBe(input.substr(0, 3));
+    });
 
-            expect(result).toBeTruthy();
-        });
+    it('should reduce the provided input in sibling node functions', () => {
+        const input = 'abc123';
+        const map = {
+            node: spy(schema => schema.threeLetters() && schema.threeNumbers()),
+            threeLetters: () => '[a-z]{3}',
+            threeNumbers: () => '[0-9]{3}',
+        };
 
-        it('should pass for an empty array', () => {
-            const value = '[]';
-            const result = parser.parse(value);
+        const schema = new Schema(map, input);
+        schema.node();
 
-            expect(result).toBeTruthy();
-        });
+        const nodeSchema = map.node.args[0][0];
 
-        it('should pass for an array of one integer', () => {
-            const value = '[1]';
-            const result = parser.parse(value);
+        expect(nodeSchema.input.length).toBe(0);
+        expect(nodeSchema.eatenInput).toBe(input);
+    });
 
-            expect(result).toBeTruthy();
-        });
+    it('should push up the new input value once a schema has successfully run', () => {
+        const input = 'abc123...';
+        const map = {
+            node: schema => schema.threeLetters() && schema.threeNumbers(),
+            threeLetters: () => '[a-z]{3}',
+            threeNumbers: () => '[0-9]{3}',
+        };
 
-        it('should pass for an array of multiple integers', () => {
-            const value = '[1,2]';
-            const result = parser.parse(value);
+        const schema = new Schema(map, input);
+        schema.node();
 
-            expect(result).toBeTruthy();
-        });
+        expect(schema.input).toBe(input.substr(6));
+        expect(schema.eatenInput).toBe(input.substr(0, 6));
+    });
 
-        it('should pass for an array of multiple integers and strings and booleans', () => {
-            const value = '[1,true,"one",2,"two",false]';
-            const result = parser.parse(value);
+    it('should respect boolean operators when executing sibling node functions', () => {
+        const input = '123abc';
+        const map = {
+            node: schema => schema.threeLetters() && schema.threeNumbers(),
+            threeLetters: spy(() => '[a-z]{3}'),
+            threeNumbers: spy(() => '[0-9]{3}'),
+        };
 
-            expect(result).toBeTruthy();
-        });
+        const schema = new Schema(map, input);
+        schema.node();
 
-        it('should allow for an JSON with whitespaces to pass', () => {
-            const value = '[1, 2, 3, 4]';
-            const result = parser.parse(value);
+        expect(map.threeLetters.calledOnce).toBeTruthy();
+        expect(map.threeNumbers.called).toBeFalsy();
+    });
 
-            expect(result).toBeTruthy();
-        });
+    it('should store schema information after node function execution', () => {
+        const input = 'abc';
+        const map = {
+            threeLetters: () => '[a-z]{3}',
+        };
 
-        it('should pass for an array of arrays', () => {
-            const value = '[[], [[], []]]';
-            const result = parser.parse(value);
+        const schema = new Schema(map, input);
+        schema.threeLetters();
 
-            expect(result).toBeTruthy();
-        });
-
-        it('should pass for an object with one key/value pair', () => {
-            const value = '{"apple":"yes"}';
-            const result = parser.parse(value);
-
-            expect(result).toBeTruthy();
-        });
-
-        it('should pass for an object with multiple key/value pairs', () => {
-            const value = '{"apple":"yes", "pears": false}';
-            const result = parser.parse(value);
-
-            expect(result).toBeTruthy();
-        });
-
-        it('should pass for an object with nested objects as key/value pairs', () => {
-            const value = '{"apple":{"answer": false}, "pears": {"answer": "yes"}}';
-            const result = parser.parse(value);
-
-            expect(result).toBeTruthy();
-        });
-
-        it('should pass a full JSON complex structure', () => {
-            const value = fs.readFileSync(`${__dirname}/example.json`, 'utf8');
-            const result = parser.parse(value);
-
-            expect(result).toBeTruthy();
-        });
-
-        it('should pass without throwing a cylical error as long as there is a mean to complete the parse', () => {
-            const input = 'abcdef';
-            const schema = {
-                node: schema => schema.word(),
-                word: schema => schema.letter() && (schema.letter() || schema.empty()),
-                letter: () => '[a-z]',
-                empty: () => true,
-            };
-
-            const parseExecution = () => {
-                parser = new Parser(() => schema);
-                parser.parse(input, 'node');
+        expect(schema.tree).toEqual([
+            {
+                input: '',
+                eatenInput: 'abc',
+                tree: [],
             }
-            const parseExecutionSpy = spy(parseExecution);
+        ]);
+    });
 
-            try{
-                parseExecution();
-            }catch(e){
+    it('should store schema instances pushed up to its parent node', () => {
+        const input = 'abc123';
+        const map = {
+            node: schema => schema.threeLetters() && schema.threeNumbers(),
+            threeLetters: () => '[a-z]{3}',
+            threeNumbers: () => '[0-9]{3}',
+        };
 
+        const schema = new Schema(map, input);
+        schema.node();
+
+        expect(schema.tree).toEqual([
+            {
+                input: '',
+                eatenInput: 'abc123',
+                tree: [
+                    {
+                        eatenInput: 'abc',
+                        input: '123',
+                        tree: [],
+                    },
+                    {
+                        eatenInput: '123',
+                        input: '',
+                        tree: [],
+                    },
+                ],
             }
-
-            expect(parseExecutionSpy.threw()).toBeFalsy();
-        });
+        ]);
     });
 
-    describe('rebuiltString', () => {
-        let schema = {};
+    it('should return true if the schema was able to match the start of an input', () => {
+        const input = 'abc123';
+        const map = {
+            node: schema => schema.threeLetters() && schema.threeNumbers(),
+            threeLetters: () => '[a-z]{3}',
+            threeNumbers: () => '[0-9]{3}',
+        };
 
-        beforeEach(() => {
-            schema = {
-                node: schema => schema.number(),
-                number: schema => (schema.one() || schema.two() || schema.three() || schema.four()) && (schema.number() || schema.empty()),
-                one: () => '1',
-                two: () => '2',
-                three: () => '3',
-                four: () => '4',
-                empty: () => true,
-            };
+        const schema = new Schema(map, input);
+        const result = schema.node();
 
-            parser = new Parser(() => schema);
-        });
-
-        it('should rebuild the correct string as it parses the provided input', () => {
-            const input = '3214';
-
-            expect(parser.parse(input, 'node')).toBeTruthy();
-            expect(parser.rebuiltString).toBe(input);
-        });
-
-        it('should rebuild the correct string as it parses the input even if it dives into the wrong node branch', () => {
-            const input = '1312';
-            schema = {
-                node: schema => schema.oneAndTwo() || schema.oneAndThree(),
-                oneAndTwo: schema => schema.one() && schema.two(),
-                oneAndThree: schema => schema.one() && schema.three(),
-                one: () => '1',
-                two: () => '2',
-                three: () => '3',
-            };
-
-            parser = new Parser(() => schema);
-
-            expect(parser.parse(input, 'node')).toBeTruthy();
-            expect(parser.rebuiltString).toBe(input);
-        });
+        expect(result).toBeTruthy();
     });
 
-    describe('lookahead callback', () => {
-        const literal = 'hello world';
-        let schema = {};
+    it('should return false if the schema was not able to match the start of an input', () => {
+        const input = '123abc';
+        const map = {
+            node: schema => schema.threeLetters() && schema.threeNumbers(),
+            threeLetters: () => '[a-z]{3}',
+            threeNumbers: () => '[0-9]{3}',
+        };
 
-        beforeEach(() => {
-            schema = {
-                node: schema => schema.literal(),
-                literal: schema => literal,
-            };
+        const schema = new Schema(map, input);
+        const result = schema.node();
 
-            parser = new Parser(() => schema);
-        });
-
-        it('should allow to define a callback to a node lookup', () => {
-            const callback = spy();
-
-            schema.node = schema => schema.literal(callback);
-            parser = new Parser(() => schema);
-            parser.parse(literal, 'node');
-
-            expect(callback.called).toBeTruthy();
-        });
-
-        it('should provide the callback the resulting string found for the given node lookup', () => {
-            let resultingNextNode = null;
-            let expectedNextNode = 'hello world';
-            let result;
-
-            schema.node = schema => schema.literal(node => {
-                resultingNextNode = node;
-            });
-            parser = new Parser(() => schema);
-            result = parser.parse(expectedNextNode, 'node');
-
-            expect(result).toBeTruthy();
-            expect(resultingNextNode).toEqual(expectedNextNode);
-        });
-
-        it('should call the correct callbacks in a complex set of parsing rules (compound rules)', () => {
-            let callback = spy();
-            let result;
-
-            schema = () => ({
-                twoWordSentence: schema => schema.word(callback) && schema.word(callback),
-                word: schema => '[a-z]+',
-            });
-
-            parser = new Parser(schema);
-            result = parser.parse(literal, 'twoWordSentence');
-
-            expect(result).toBeTruthy();
-            expect(callback.callCount).toBe(2);
-        });
-
-        it('should call the correct callbacks in a complex set of parsing rules (alternative rules)', () => {
-            let callback = spy();
-            let shouldNotBeExecutedCallback = spy();
-            let result;
-
-            schema = () => ({
-                twoElementSentence: schema => schema.element() && schema.element(),
-                element: schema => schema.number(shouldNotBeExecutedCallback) || schema.word(callback),
-                word: () => '[a-z]+',
-                number: () => '[0-9]+',
-            });
-
-            parser = new Parser(schema);
-            result = parser.parse(literal, 'twoElementSentence');
-
-            expect(result).toBeTruthy();
-            expect(callback.callCount).toBe(2);
-            expect(shouldNotBeExecutedCallback.called).toBeFalsy();
-        });
+        expect(result).toBeFalsy();
     });
 
-    describe('function node', () => {
-        let schema = {};
+    it('should rebuild the correct string as it parses the input even if it dives into the wrong node branch', () => {
+        const input = '1312';
+        const map = {
+            node: schema => schema.oneAndTwo() || schema.oneAndThree(),
+            oneAndTwo: schema => schema.one() && schema.two(),
+            oneAndThree: schema => schema.one() && schema.three(),
+            one: () => '1',
+            two: () => '2',
+            three: () => '3',
+        };
 
-        beforeEach(() => {
-            schema = {
-                node: schema => schema.function()
-            };
+        const schema = new Schema(map, input);
+        const result = schema.parse('node');
 
-            parser = new Parser(() => schema);
-        });
+        expect(result).toBeTruthy();
+    });
+});
 
-        it('should return the proper value from a custom function node', () => {
-            const expectedValue = 'static_string';
-            let result;
+describe('eat()', () => {
+    it('should return true if the regexp matches the provided string', () => {
+        const schema = new Schema();
 
-            schema = {
-                node: schema => schema.function(() => expectedValue),
-                function: schema => 'function\\(\\)',
-            };
+        const result = schema.eat('[a-z]{2}[0-9]{3}', 'ab0123');
 
-            parser = new Parser(() => schema);
-            result = parser.parse('function()', 'node');
+        expect(result).toBeTruthy();
+    });
 
-            expect(result).toBeTruthy();
-            expect(parser.rebuiltString).toBe(expectedValue);
-        });
+    it('should return false if the regexp does not match the provided string', () => {
+        const schema = new Schema();
 
-        it('should pass capture groups to the lookahead callback', () => {
-            const expectedValue = 'aaaaa';
-            let result;
+        const result = schema.eat('[a-z]{2}[0-9]{3}', '01234ab0123');
 
-            schema = {
-                node: schema => schema.repeat((node, repeatCount) => {
+        expect(result).toBeFalsy();
+    });
+});
 
-                    let str = '';
-                    for (let ii = 0; ii < repeatCount; ii++) {
-                        str += 'a';
-                    }
-                    return str;
-                }),
-                repeat: schema => 'repeat\\(([0-9]+)\\)',
-            };
+describe('parse()', () => {
+    it('should pass if the full input has been parsed successfully', () => {
+        const input = 'abc123';
+        const map = {
+            node: schema => schema.threeLetters() && schema.threeNumbers(),
+            threeLetters: () => '[a-z]{3}',
+            threeNumbers: () => '[0-9]{3}',
+        };
 
-            parser = new Parser(() => schema);
-            result = parser.parse('repeat(5)', 'node');
+        const schema = new Schema(map, input);
+        const result = schema.parse('node');
 
-            expect(result).toBeTruthy();
-            expect(parser.rebuiltString).toBe(expectedValue);
-        });
+        expect(result).toBeTruthy();
+    });
+
+    it('should fail if the input has not been completely parsed', () => {
+        const input = 'abc123';
+        const map = {
+            node: schema => schema.threeNumbers() && schema.threeLetters(),
+            threeLetters: () => '[a-z]{3}',
+            threeNumbers: () => '[0-9]{3}',
+        };
+
+        const schema = new Schema(map, input);
+        const result = schema.parse('node');
+
+        expect(result).toBeFalsy();
+    });
+
+    it('should fail if no map or input is provided', () => {
+        const input = 'abc123';
+        const map = {
+            node: () => 'someRegExp',
+        };
+
+        expect((new Schema(map, undefined)).parse('node')).toBeFalsy();
+        expect((new Schema(undefined, input)).parse('node')).toBeFalsy();
+    });
+
+    it('should log an error if the starting node function is not specified', () => {
+        const cErrorSpy = stub(console, 'error');
+
+        const schema = new Schema({}, '');
+        schema.parse();
+
+        expect(cErrorSpy.called).toBeTruthy();
+
+        cErrorSpy.restore();
+    });
+});
+
+describe('callback', () => {
+    const input = 'abc123';
+    const map = {
+        node: schema => schema.threeLetters() && schema.threeNumbers(),
+        threeLetters: () => '[a-z]{3}',
+        threeNumbers: () => '[0-9]{3}',
+    };
+
+    it('should execute a callback after a node has been executed', () => {
+        const callbackSpy = spy();
+        map.node = schema => schema.threeLetters() && schema.threeNumbers(callbackSpy);
+
+        const schema = new Schema(map, input);
+        schema.parse('node');
+
+        expect(callbackSpy.calledOnce).toBeTruthy();
+    });
+
+    it('should push a node match if no value is returned', () => {
+        map.node = schema => schema.threeLetters() && schema.threeNumbers(() => {});
+
+        const schema = new Schema(map, input);
+        const result = schema.parse('node');
+
+        expect(result).toBeTruthy();
+    });
+
+    it('should not push a node match if false is returned', () => {
+        map.node = schema => schema.threeLetters() && schema.threeNumbers(() => false);
+
+        const schema = new Schema(map, input);
+        const result = schema.parse('node');
+
+        expect(result).toBeFalsy();
+    });
+
+    it('should continue to the next node should a callback return false, rejecting the current node match', () => {
+        const rejectionCallbackSpy = spy(() => false);
+
+        map.node = schema => schema.threeLetters() && (schema.threeNumbers(rejectionCallbackSpy) || schema.threeNumbers());
+        map.threeNumbers = spy(map.threeNumbers);
+
+        const schema = new Schema(map, input);
+        const result = schema.parse('node');
+
+        expect(result).toBeTruthy();
+        expect(rejectionCallbackSpy.called).toBeTruthy();
+        expect(map.threeNumbers.callCount).toBe(2);
+    });
+});
+
+describe('case scenarios', () => {
+    it('should pass a valid JSON structure', () => {
+        const input = fs.readFileSync(`${__dirname}/example.json`, 'utf8');
+
+        const schema = new Schema(jsonSchemaMap, input);
+        const result = schema.parse('nonEmptyValue');
+
+        expect(result).toBeTruthy();
     });
 });

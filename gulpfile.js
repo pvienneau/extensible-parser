@@ -7,22 +7,14 @@ const runSequence = require('run-sequence');
 gulp.task('build', () => {
     const b = babel({ presets: [ 'es2015' ] });
 
-    return runSequence(['build:parser', 'build:schema']);
-});
-
-gulp.task('build:parser', () => {
-    const b = babel({ presets: [ 'es2015' ] });
-
-    return gulp.src('lib/parser.js')
-        .pipe(b)
-        .pipe(rename('index.js'))
-        .pipe(gulp.dest('dist'));
+    return runSequence(['build:schema']);
 });
 
 gulp.task('build:schema', () => {
     const b = babel({ presets: [ 'es2015' ] });
 
-    gulp.src('lib/schema.js')
+    return gulp.src('lib/schema.js')
         .pipe(b)
+        .pipe(rename('index.js'))
         .pipe(gulp.dest('dist'));
 });
