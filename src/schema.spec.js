@@ -1,5 +1,3 @@
-//import fs from 'fs';
-//
 import Schema from './schema';
 import jsonSchemaMap from './templates/json';
 
