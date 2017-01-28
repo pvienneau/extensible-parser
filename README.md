@@ -1,7 +1,6 @@
 # JSON-parser
 
 [![CircleCI](https://circleci.com/gh/pvienneau/extensible-parser/tree/develop.svg?style=shield)](https://circleci.com/gh/pvienneau/extensible-parser/tree/develop)
-
 [![Code Climate](https://codeclimate.com/github/pvienneau/JSON-parser/badges/gpa.svg)](https://codeclimate.com/github/pvienneau/JSON-parser)
 
 A simple JSON parser.
