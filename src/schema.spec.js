@@ -378,6 +378,72 @@ describe('callback', () => {
         expect(rejectionCallbackSpy.called).toBeTruthy();
         expect(map.threeNumbers.callCount).toBe(2);
     });
+
+    it('should fire callbacks once and only once the node functions, the subsequent node functions and their respective callbacks have all been fired', () => {
+        const completorCallback = spy();
+        const letterCallback = spy();
+        const numberCallback = spy();
+
+        const input = 'ab2s02';
+        const map = {
+            node: schema => schema.completor(completorCallback),
+            completor: schema => (schema.letter(letterCallback) || schema.number(numberCallback)) && (schema.completor(completorCallback) || schema.empty()),
+            letter: schema => '[a-z]',
+            number: schema => '[0-9]',
+            empty: () => true,
+        };
+
+        const schema = new Schema(map, input);
+        schema.parse('node');
+
+        expect(schema).toBeTruthy();
+        expect(completorCallback.calledAfter(letterCallback));
+        expect(completorCallback.calledAfter(numberCallback));
+    });
+
+    it('should be allowed to affect the current schema instance eaten value', () => {
+        const transformCallback = schema => schema.eatenInput = 'x';
+        const input = '1.3..6.8';
+        const map = {
+            sequence: schema => schema.character() && (schema.sequence() || schema.empty()),
+            character: schema => schema.number() || schema.dot(transformCallback),
+            dot: () => '\\.',
+            number: () => '[0-9]',
+            empty: () => true,
+        }
+
+        const schema = new Schema(map, input);
+        const result = schema.parse('sequence');
+
+        expect(result).toBeTruthy();
+        expect(schema.eatenInput).toBe('1x3xx6x8');
+    });
+
+    it('should be allowed to affect the current schema instance tree', () => {
+        const repeat5Callback = schema => {
+            const { eatenInput } = schema;
+            for(let ii = 1; ii < 5; ii++){
+                schema.eatenInput += eatenInput;
+            }
+        };
+        const input = '1{36}8';
+        const map = {
+            sequence: schema => (schema.digit() || schema.repeatSequence()) && (schema.sequence() || schema.empty()),
+            repeatSequence: schema => schema.curlyLeft() && schema.number(repeat5Callback) && schema.curlyRight(),
+            number: schema => schema.digit() && (schema.number() || schema.empty()),
+            curlyLeft: () => '{',
+            curlyRight: () => '}',
+            digit: () => '[0-9]',
+            empty: () => true,
+        }
+
+        const schema = new Schema(map, input);
+        const result = schema.parse('sequence');
+
+        expect(result).toBeTruthy();
+        expect(schema.eatenInput).toBe('1{3636363636}8');
+        fail('tree not implemented');
+    });
 });
 
 describe('case scenarios', () => {

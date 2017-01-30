@@ -15,7 +15,7 @@ export default class Schema{
                 if (!result) return false;
 
                 if (callback){
-                    if (this.isExplicitFalseReturn(callback())) return false;
+                    if (this.isExplicitFalse(callback(schema))) return false;
                 }
 
                 //end of execution of node
@@ -51,8 +51,8 @@ export default class Schema{
         return true;
     }
 
-    isExplicitFalseReturn(retrn){
-        return (!retrn && retrn !== undefined);
+    isExplicitFalse(val){
+        return (!val && val !== undefined);
     }
 
     saveNodeImage(schema = false) {
