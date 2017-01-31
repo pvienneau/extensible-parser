@@ -5,7 +5,43 @@ import jsonExample from './examples/json.js';
 
 const { spy, stub, mock } = sinon;
 
+const toHaveSubset = () => {
+    return {
+        compare: (actual, expected) => {
+            let result = { pass: true };
+
+            if(typeof expected === 'object'){
+                const keys = Object.keys(expected);
+
+
+                for(let ii = 0; ii < keys.length; ii++){
+                    let key = keys[ii];
+
+                    if(!(key in actual)){
+                        result.pass = false;
+                        break;
+                    }
+
+                    let r = toHaveSubset().compare(actual[key], expected[key]);
+
+                    if(!r.pass) result = r;
+                }
+            }else{
+                if(actual !== expected) result.pass = false;
+            }
+
+            return result;
+        }
+    }
+};
+
 describe('Schema', () => {
+    beforeEach(function() {
+        jasmine.addMatchers({
+            toHaveSubset
+        });
+    });
+
     it('should instantiate', () => {
         const schema = new Schema();
     });
@@ -138,12 +174,12 @@ describe('Schema', () => {
         const schema = new Schema(map, input);
         schema.threeLetters();
 
-        expect(schema.tree).toEqual([
+        expect(schema.tree).toHaveSubset([
             {
                 input: '',
                 eatenInput: 'abc',
                 tree: [],
-            },
+            }
         ]);
     });
 
@@ -158,7 +194,7 @@ describe('Schema', () => {
         const schema = new Schema(map, input);
         schema.node();
 
-        expect(schema.tree).toEqual([
+        expect(schema.tree).toHaveSubset([
             {
                 input: '',
                 eatenInput: 'abc123',
@@ -250,6 +286,12 @@ describe('eat()', () => {
 });
 
 describe('saveNodeImage()', () => {
+    beforeEach(function() {
+        jasmine.addMatchers({
+            toHaveSubset
+        });
+    });
+
     it('should save the current state to image', () => {
         const input = 'hello world.';
         const schema = new Schema({}, input);
@@ -258,7 +300,7 @@ describe('saveNodeImage()', () => {
         const result = schema.saveNodeImage(childSchema);
 
         expect(result).toBeTruthy();
-        expect(schema.tree).toEqual([
+        expect(schema.tree).toHaveSubset([
             {
                 input: input,
                 eatenInput: '',
@@ -336,6 +378,12 @@ describe('callback', () => {
         threeLetters: () => '[a-z]{3}',
         threeNumbers: () => '[0-9]{3}',
     };
+
+    beforeEach(function() {
+        jasmine.addMatchers({
+            toHaveSubset
+        });
+    });
 
     it('should execute a callback after a node has been executed', () => {
         const callbackSpy = spy();
@@ -420,29 +468,132 @@ describe('callback', () => {
     });
 
     it('should be allowed to affect the current schema instance tree', () => {
-        const repeat5Callback = schema => {
-            const { eatenInput } = schema;
-            for(let ii = 1; ii < 5; ii++){
-                schema.eatenInput += eatenInput;
+        const repeatSequence = schema => {
+            schema.eatenInput = schema.eatenInput.substring(1, schema.eatenInput.length-1);
+        };
+        const repeat2Callback = schema => {
+            const { eatenInput, input } = schema;
+
+            for(let ii = 1; ii < 2; ii++){
+                schema.input = eatenInput;
+                schema.saveNodeImage(schema.number());
             }
+
+            schema.input = input;
         };
         const input = '1{36}8';
         const map = {
-            sequence: schema => (schema.digit() || schema.repeatSequence()) && (schema.sequence() || schema.empty()),
-            repeatSequence: schema => schema.curlyLeft() && schema.number(repeat5Callback) && schema.curlyRight(),
+            sequence: schema => (schema.digit() || schema.repeatSequence(repeatSequence)) && (schema.sequence() || schema.empty()),
+            repeatSequence: schema => schema.curlyLeft() && schema.number(repeat2Callback) && schema.curlyRight(),
             number: schema => schema.digit() && (schema.number() || schema.empty()),
             curlyLeft: () => '{',
             curlyRight: () => '}',
             digit: () => '[0-9]',
             empty: () => true,
         }
+        const expectedTree = [{
+            'input': '',
+            'eatenInput': '136368',
+            'node': 'sequence',
+            'tree': [{
+                'input': '{36}8',
+                'eatenInput': '1',
+                'node': 'digit',
+                'tree': []
+            }, {
+                'input': '',
+                'eatenInput': '36368',
+                'node': 'sequence',
+                'tree': [{
+                    'input': '8',
+                    'eatenInput': '3636',
+                    'node': 'repeatSequence',
+                    'tree': [{
+                        'input': '36}8',
+                        'eatenInput': '{',
+                        'node': 'curlyLeft',
+                        'tree': []
+                    }, {
+                        'input': '}8',
+                        'eatenInput': '3636',
+                        'node': 'number',
+                        'tree': [{
+                            'input': '6}8',
+                            'eatenInput': '3',
+                            'node': 'digit',
+                            'tree': []
+                        }, {
+                            'input': '}8',
+                            'eatenInput': '6',
+                            'node': 'number',
+                            'tree': [{
+                                'input': '}8',
+                                'eatenInput': '6',
+                                'node': 'digit',
+                                'tree': []
+                            }, {
+                                'input': '}8',
+                                'eatenInput': '',
+                                'node': 'empty',
+                                'tree': []
+                            }]
+                        }, {
+                            'input': '',
+                            'eatenInput': '36',
+                            'node': 'number',
+                            'tree': [{
+                                'input': '6',
+                                'eatenInput': '3',
+                                'node': 'digit',
+                                'tree': []
+                            }, {
+                                'input': '',
+                                'eatenInput': '6',
+                                'node': 'number',
+                                'tree': [{
+                                    'input': '',
+                                    'eatenInput': '6',
+                                    'node': 'digit',
+                                    'tree': []
+                                }, {
+                                    'input': '',
+                                    'eatenInput': '',
+                                    'node': 'empty',
+                                    'tree': []
+                                }]
+                            }]
+                        }, {}]
+                    }, {
+                        'input': '8',
+                        'eatenInput': '}',
+                        'node': 'curlyRight',
+                        'tree': []
+                    }]
+                }, {
+                    'input': '',
+                    'eatenInput': '8',
+                    'node': 'sequence',
+                    'tree': [{
+                        'input': '',
+                        'eatenInput': '8',
+                        'node': 'digit',
+                        'tree': []
+                    }, {
+                        'input': '',
+                        'eatenInput': '',
+                        'node': 'empty',
+                        'tree': []
+                    }]
+                }]
+            }]
+        }];
 
         const schema = new Schema(map, input);
         const result = schema.parse('sequence');
 
         expect(result).toBeTruthy();
-        expect(schema.eatenInput).toBe('1{3636363636}8');
-        fail('tree not implemented');
+        expect(schema.eatenInput).toBe('136368');
+        expect(schema.tree).toHaveSubset(expectedTree);
     });
 });
 

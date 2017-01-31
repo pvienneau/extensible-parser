@@ -1,12 +1,13 @@
-export default class Schema{
-    constructor(map = {}, input = ''){
+export default class Schema {
+    constructor(map = {}, input = '', node = ''){
         this.input = input;
         this.eatenInput = '';
         this.tree = [];
+        this.node = node;
 
         Object.keys(map).map(name => {
             this[name] = (callback = false) => {
-                const schema = new Schema(map, this.input);
+                const schema = new Schema(map, this.input, name);
 
                 let result = map[name](schema);
 
@@ -15,7 +16,7 @@ export default class Schema{
                 if (!result) return false;
 
                 if (callback){
-                    if (this.isExplicitFalse(callback(schema))) return false;
+                    if (this.isExplicitlyFalse(callback(schema))) return false;
                 }
 
                 //end of execution of node
@@ -51,7 +52,7 @@ export default class Schema{
         return true;
     }
 
-    isExplicitFalse(val){
+    isExplicitlyFalse(val){
         return (!val && val !== undefined);
     }
 
@@ -61,6 +62,7 @@ export default class Schema{
         const nodeImage = {
             input: schema.input,
             eatenInput: schema.eatenInput,
+            node: schema.node,
             tree: schema.tree,
         };
 
@@ -71,7 +73,7 @@ export default class Schema{
 
     parse(nodeFn = false){
         if (!nodeFn) {
-            console.error('You need to specify what node to call first');
+            console.error('You need to specify what node to call first.');
             return false;
         }
 

@@ -26,6 +26,7 @@ module.exports = function(config) {
             'karma-phantomjs-launcher',
             'karma-sourcemap-loader',
             'karma-sinon',
+            'karma-jasmine-diff-reporter',
             'karma-coveralls'
         ],
         jspm: {
@@ -39,7 +40,7 @@ module.exports = function(config) {
         },
         browsers: ['PhantomJS'],
         reporters: [
-            'coverage', 'progress', 'coveralls'
+            'jasmine-diff', 'coverage', 'progress', 'coveralls'
         ],
         files: [
             'node_modules/babel-polyfill/dist/polyfill.js'
