@@ -56,5 +56,6 @@
         "directories": {
             "baseURL": "jspm"
         }
-    }
+    },
+    "dependencies": {}
 }
