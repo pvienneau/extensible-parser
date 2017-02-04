@@ -16,7 +16,7 @@ module.exports = function(config) {
             }
         },
         frameworks: [
-            'jspm', 'jasmine', 'sinon', 'jasmine-matchers'
+            'jspm', 'jasmine', 'sinon'/*, 'jasmine-matchers'*/
         ],
         plugins: [
             'karma-babel-preprocessor',
@@ -28,7 +28,7 @@ module.exports = function(config) {
             'karma-sinon',
             'karma-jasmine-diff-reporter',
             'karma-coveralls',
-            'karma-jasmine-matchers'
+            //'karma-jasmine-matchers'
         ],
         jspm: {
             config: 'jspm/config.js',
