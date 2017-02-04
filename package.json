@@ -1,11 +1,13 @@
 {
-    "name": "extensible-parser",
+    "name": "extensible-compiler",
     "version": "2.0.0",
-    "description": "A simple JSON parser.",
+    "description": "A language-agnostic compiler, allowing you to define your own validation rules.",
     "author": "Patrick Vienneau",
     "keywords": [
         "json",
-        "parser"
+        "parser",
+        "compiler",
+        "language"
     ],
     "repository": "https://github.com/pvienneau/JSON-parser",
     "issues": "https://github.com/pvienneau/JSON-parser/issues",

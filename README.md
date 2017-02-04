@@ -10,7 +10,7 @@ A simple JSON parser.
 
 ```
 const input = '{"some":["json", "to", "validate"]}';
-const map = require('./examples/json.js');
+const map = require('./src/templates/json');
 
 const schema = new Schema(map, input);
 
