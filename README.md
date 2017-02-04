@@ -10,9 +10,9 @@ A simple JSON parser.
 
 ```
 const input = '{"some":["json", "to", "validate"]}';
-const map = require('./examples/json');
+const map = require('./examples/json.js');
 
 const schema = new Schema(map, input);
 
-if (schema.parse('nonEmptyValue')) alert('Yay! That's some valid JSON!');
+if (schema.parse()) alert('Yay! That's some valid JSON!');
 ```
