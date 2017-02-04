@@ -1,26 +1,30 @@
 export default class Schema {
-    constructor(map = {}, input = '', node = ''){
+    constructor(map = {}, input = '', nodeName = null){
         this.input = input;
+        this.rawInput = input;
         this.eatenInput = '';
-        this.tree = [];
-        this.node = node;
+        this.nodeName = nodeName;
+        this.arguments = [];
+
+        if (!this.nodeName) this.nodeName = Object.keys(map)[0];
 
         Object.keys(map).map(name => {
             this[name] = (callback = false) => {
                 const schema = new Schema(map, this.input, name);
+                let callbackArguments = [schema];
 
                 let result = map[name](schema);
 
-                if (typeof result === 'string') result = schema.eat(result, schema.input);
+                if (typeof result === 'string'){
+                    result = schema.eat(result, schema.input);
+                    callbackArguments = callbackArguments.concat(schema.arguments);
+                }
 
                 if (!result) return false;
 
                 if (callback){
-                    if (this.isExplicitlyFalse(callback(schema))) return false;
+                    if (this.isExplicitlyFalse(callback.apply(null, callbackArguments))) return false;
                 }
-
-                //end of execution of node
-                this.saveNodeImage(schema);
 
                 this.input = schema.input;
                 this.eatenInput += schema.eatenInput;
@@ -33,8 +37,14 @@ export default class Schema {
         this.eat = this.eat.bind(this);
     }
 
+    cleanString(str) {
+        if(!str) return false;
+
+        return str.replace(/^\s*/i, '').replace(/\s*$/i, '');
+    }
+
     regExp(expression) {
-        return new RegExp(`^\\s*${expression}`, 'i');
+        return new RegExp(`^\\s*${expression}`, 'ig');
     }
 
     eat(expression = '', string = '') {
@@ -47,7 +57,12 @@ export default class Schema {
         if (!result) return false;
 
         this.eatenInput += result[0];
+
         this.input = this.input.substr(result[0].length);
+
+        // arguments formulated by capturing regexp groups not saving to this.args
+        result.splice(0, 1);
+        this.arguments = result;
 
         return true;
     }
@@ -56,27 +71,16 @@ export default class Schema {
         return (!val && val !== undefined);
     }
 
-    saveNodeImage(schema = false) {
-        if(!schema) return false;
+    parse(nodeName = null){
+        if (!nodeName) nodeName = this.nodeName;
 
-        const nodeImage = {
-            input: schema.input,
-            eatenInput: schema.eatenInput,
-            node: schema.node,
-            tree: schema.tree,
+        if (!nodeName) {
+            console.error('[JSON-Parser]: You must specify the starting node to parse your input.');
+            return false;
         };
 
-        this.tree.push(nodeImage);
+        const result = this[nodeName]?this[nodeName]():false;
 
-        return nodeImage;
-    }
-
-    parse(nodeFn = false){
-        if (!nodeFn) {
-            console.error('You need to specify what node to call first.');
-            return false;
-        }
-
-        return this[nodeFn]?this[nodeFn]():false;
+        return result && !this.cleanString(this.input).length;
     }
 }

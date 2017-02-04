@@ -13,7 +13,7 @@ gulp.task('build', () => {
 gulp.task('build:schema', () => {
     const b = babel({ presets: [ 'es2015' ] });
 
-    return gulp.src('lib/schema.js')
+    return gulp.src('src/schema.js')
         .pipe(b)
         .pipe(rename('index.js'))
         .pipe(gulp.dest('dist'));

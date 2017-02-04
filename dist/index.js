@@ -10,35 +10,42 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var Schema = function () {
     function Schema() {
+        var map = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
         var _this = this;
 
-        var map = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
         var input = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
+        var nodeName = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
 
         _classCallCheck(this, Schema);
 
         this.input = input;
+        this.rawInput = input;
         this.eatenInput = '';
-        this.tree = [];
+        this.nodeName = nodeName;
+        this.arguments = [];
+
+        if (!this.nodeName) this.nodeName = Object.keys(map)[0];
 
         Object.keys(map).map(function (name) {
             _this[name] = function () {
                 var callback = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
 
-                var schema = new Schema(map, _this.input);
+                var schema = new Schema(map, _this.input, name);
+                var callbackArguments = [schema];
 
                 var result = map[name](schema);
 
-                if (typeof result === 'string') result = schema.eat(result, schema.input);
+                if (typeof result === 'string') {
+                    result = schema.eat(result, schema.input);
+                    callbackArguments = callbackArguments.concat(schema.arguments);
+                }
 
                 if (!result) return false;
 
                 if (callback) {
-                    if (_this.isExplicitFalseReturn(callback())) return false;
+                    if (_this.isExplicitlyFalse(callback.apply(null, callbackArguments))) return false;
                 }
-
-                //end of execution of node
-                _this.saveNodeImage(schema);
 
                 _this.input = schema.input;
                 _this.eatenInput += schema.eatenInput;
@@ -52,17 +59,24 @@ var Schema = function () {
     }
 
     _createClass(Schema, [{
+        key: 'cleanString',
+        value: function cleanString(str) {
+            if (!str) return false;
+
+            return str.replace(/^\s*/i, '').replace(/\s*$/i, '');
+        }
+    }, {
         key: 'regExp',
         value: function regExp(expression) {
-            return new RegExp('^\\s*' + expression, 'i');
+            return new RegExp('^\\s*' + expression, 'ig');
         }
     }, {
         key: 'eat',
         value: function eat() {
-            var expression = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-            var string = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+            var expression = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+            var string = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
 
-            if (!expression || !string || typeof string !== 'string') return false;
+            if (!expression || !string) return false;
 
             var matchedString = void 0;
 
@@ -71,41 +85,35 @@ var Schema = function () {
             if (!result) return false;
 
             this.eatenInput += result[0];
+
             this.input = this.input.substr(result[0].length);
+
+            // arguments formulated by capturing regexp groups not saving to this.args
+            result.splice(0, 1);
+            this.arguments = result;
 
             return true;
         }
     }, {
-        key: 'isExplicitFalseReturn',
-        value: function isExplicitFalseReturn(retrn) {
-            return !retrn && retrn !== undefined;
-        }
-    }, {
-        key: 'saveNodeImage',
-        value: function saveNodeImage() {
-            var schema = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-            var nodeImage = {
-                input: schema.input,
-                eatenInput: schema.eatenInput,
-                tree: schema.tree
-            };
-
-            this.tree.push(nodeImage);
-
-            return nodeImage;
+        key: 'isExplicitlyFalse',
+        value: function isExplicitlyFalse(val) {
+            return !val && val !== undefined;
         }
     }, {
         key: 'parse',
         value: function parse() {
-            var nodeFn = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+            var nodeName = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
 
-            if (!nodeFn) {
-                console.error('You need to specify what node to call first');
+            if (!nodeName) nodeName = this.nodeName;
+
+            if (!nodeName) {
+                console.error('[JSON-Parser]: You must specify the starting node to parse your input.');
                 return false;
-            }
+            };
 
-            return this[nodeFn] ? this[nodeFn]() : false;
+            var result = this[nodeName] ? this[nodeName]() : false;
+
+            return result && !this.cleanString(this.input).length;
         }
     }]);
 

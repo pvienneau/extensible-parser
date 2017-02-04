@@ -6,8 +6,49 @@ import jsonExample from './examples/json.js';
 const { spy, stub, mock } = sinon;
 
 describe('unit tests', () => {
-    describe('Schema', () => {
+    beforeEach(() => {
+        jasmine.addMatchers({
+            toHaveSubset: function(util, customEqualityTesters) {
+                return {
+                    compare: function toHaveSubset(expected, actual){
+                        var compare = function(expected, actual){
+                            if (typeof expected === 'object') {
+                                if(typeof actual !== 'object') return {pass: false};
+                                if(Array.isArray(expected) !== Array.isArray(actual)) return {pass: false};
 
+                                const keys = Object.keys(expected);
+
+                                for (var ii = 0; ii < keys.length; ii++) {
+                                    var key = keys[ii];
+
+                                    if (!(key in actual)) return {pass: false};
+
+                                    var result = {};
+                                    if(Array.isArray(expected) && (typeof expected[key] === 'string')){
+                                        result = {
+                                            pass: actual.indexOf(expected[key]) >= 0
+                                        };
+                                    }else{
+                                        result = compare(expected[key], actual[key]);
+                                    }
+
+                                    if (!result.pass) return {pass: false};
+                                }
+                            } else {
+                                if (actual !== expected) return {pass: false};
+                            }
+
+                            return {pass: true};
+                        }
+
+                        return compare(actual, expected);
+                    }
+                }
+            }
+        });
+    });
+
+    describe('Schema', () => {
         it('should instantiate', () => {
             const schema = new Schema();
         });
@@ -71,6 +112,34 @@ describe('unit tests', () => {
             expect(schema.input).toEqual(input);
         });
 
+        it('should use first available node as start of parsing, if no other value is specified', () => {
+            const input = 'hello world.';
+            const map = {
+                main: spy(),
+                secondary: spy(),
+                tiertiary: spy(),
+            };
+
+            const schema = new Schema(map, input);
+            schema.parse();
+
+            expect(map.main.called).toBeTruthy();
+        });
+
+        it('should allow to specify the starting node as part of the instance creation', () => {
+            const input = 'hello world.';
+            const map = {
+                main: spy(),
+                secondary: spy(),
+                tiertiary: spy(),
+            };
+
+            const schema = new Schema(map, input, 'tiertiary');
+            schema.parse();
+
+            expect(map.tiertiary.called).toBeTruthy();
+        });
+
         it('should reduce the provided input by the matched string', () => {
             const input = 'abc123';
             const map = {
@@ -131,55 +200,6 @@ describe('unit tests', () => {
             expect(map.threeNumbers.called).toBeFalsy();
         });
 
-        it('should store schema information after node function execution', () => {
-            const input = 'abc';
-            const map = {
-                threeLetters: () => '[a-z]{3}',
-            };
-
-            const schema = new Schema(map, input);
-            schema.threeLetters();
-
-            expect(schema.tree).toHaveSubset([
-                {
-                    input: '',
-                    eatenInput: 'abc',
-                    tree: [],
-                }
-            ]);
-        });
-
-        it('should store schema instances pushed up to its parent node', () => {
-            const input = 'abc123';
-            const map = {
-                node: schema => schema.threeLetters() && schema.threeNumbers(),
-                threeLetters: () => '[a-z]{3}',
-                threeNumbers: () => '[0-9]{3}',
-            };
-
-            const schema = new Schema(map, input);
-            schema.node();
-
-            expect(schema.tree).toHaveSubset([
-                {
-                    input: '',
-                    eatenInput: 'abc123',
-                    tree: [
-                        {
-                            eatenInput: 'abc',
-                            input: '123',
-                            tree: [],
-                        },
-                        {
-                            eatenInput: '123',
-                            input: '',
-                            tree: [],
-                        },
-                    ],
-                },
-            ]);
-        });
-
         it('should return true if the schema was able to match the start of an input', () => {
             const input = 'abc123';
             const map = {
@@ -208,7 +228,7 @@ describe('unit tests', () => {
             expect(result).toBeFalsy();
         });
 
-        it('should rebuild the correct string as it parses the input even if it dives into the wrong node branch', () => {
+        it('should be allowed to continue to subsequent functions if first functions was non-matching without affecting input value', () => {
             const input = '1312';
             const map = {
                 node: schema => schema.oneAndTwo() || schema.oneAndThree(),
@@ -222,8 +242,25 @@ describe('unit tests', () => {
             const schema = new Schema(map, input);
             const result = schema.parse('node');
 
-            expect(result).toBeTruthy();
+            expect(result).toBeFalsy();
+            expect(schema.input).toBe('12');
+            expect(schema.eatenInput).toBe('13');
         });
+
+        it('should fail on incomplete consumption of string', () => {
+            const input = 'aabababas';
+            const map = {
+                node: schema => (schema.a() || schema.b()) && (schema.node() || schema.empty()),
+                a: () => 'a',
+                b: () => 'b',
+                empty: () => true,
+            };
+
+            const schema = new Schema(map, input);
+            const result = schema.parse('node');
+
+            expect(result).toBeFalsy();
+        })
     });
 
     describe('eat()', () => {
@@ -248,35 +285,6 @@ describe('unit tests', () => {
 
             expect(schema.eat(undefined, 'someString')).toBeFalsy();
             expect(schema.eat('someRegExp', undefined)).toBeFalsy();
-        });
-    });
-
-    describe('saveNodeImage()', () => {
-        it('should save the current state to image', () => {
-            const input = 'hello world.';
-            const schema = new Schema({}, input);
-            const childSchema = new Schema({}, input);
-
-            const result = schema.saveNodeImage(childSchema);
-
-            expect(result).toBeTruthy();
-            expect(schema.tree).toHaveSubset([
-                {
-                    input: input,
-                    eatenInput: '',
-                    tree: [],
-                },
-            ]);
-        });
-
-        it('should return false and not save an image if no schema is provided', () => {
-            const input = 'hello world.';
-            const schema = new Schema({}, input);
-
-            const result = schema.saveNodeImage();
-
-            expect(result).toBeFalsy();
-            expect(schema.tree).toEqual([]);
         });
     });
 
@@ -430,7 +438,7 @@ describe('unit tests', () => {
 
                 for(let ii = 1; ii < 2; ii++){
                     schema.input = eatenInput;
-                    schema.saveNodeImage(schema.number());
+                    schema.number();
                 }
 
                 schema.input = input;
@@ -445,109 +453,110 @@ describe('unit tests', () => {
                 digit: () => '[0-9]',
                 empty: () => true,
             }
-            const expectedTree = [{
-                'input': '',
-                'eatenInput': '136368',
-                'node': 'sequence',
-                'tree': [{
-                    'input': '{36}8',
-                    'eatenInput': '1',
-                    'node': 'digit',
-                    'tree': []
-                }, {
-                    'input': '',
-                    'eatenInput': '36368',
-                    'node': 'sequence',
-                    'tree': [{
-                        'input': '8',
-                        'eatenInput': '3636',
-                        'node': 'repeatSequence',
-                        'tree': [{
-                            'input': '36}8',
-                            'eatenInput': '{',
-                            'node': 'curlyLeft',
-                            'tree': []
-                        }, {
-                            'input': '}8',
-                            'eatenInput': '3636',
-                            'node': 'number',
-                            'tree': [{
-                                'input': '6}8',
-                                'eatenInput': '3',
-                                'node': 'digit',
-                                'tree': []
-                            }, {
-                                'input': '}8',
-                                'eatenInput': '6',
-                                'node': 'number',
-                                'tree': [{
-                                    'input': '}8',
-                                    'eatenInput': '6',
-                                    'node': 'digit',
-                                    'tree': []
-                                }, {
-                                    'input': '}8',
-                                    'eatenInput': '',
-                                    'node': 'empty',
-                                    'tree': []
-                                }]
-                            }, {
-                                'input': '',
-                                'eatenInput': '36',
-                                'node': 'number',
-                                'tree': [{
-                                    'input': '6',
-                                    'eatenInput': '3',
-                                    'node': 'digit',
-                                    'tree': []
-                                }, {
-                                    'input': '',
-                                    'eatenInput': '6',
-                                    'node': 'number',
-                                    'tree': [{
-                                        'input': '',
-                                        'eatenInput': '6',
-                                        'node': 'digit',
-                                        'tree': []
-                                    }, {
-                                        'input': '',
-                                        'eatenInput': '',
-                                        'node': 'empty',
-                                        'tree': []
-                                    }]
-                                }]
-                            }, {}]
-                        }, {
-                            'input': '8',
-                            'eatenInput': '}',
-                            'node': 'curlyRight',
-                            'tree': []
-                        }]
-                    }, {
-                        'input': '',
-                        'eatenInput': '8',
-                        'node': 'sequence',
-                        'tree': [{
-                            'input': '',
-                            'eatenInput': '8',
-                            'node': 'digit',
-                            'tree': []
-                        }, {
-                            'input': '',
-                            'eatenInput': '',
-                            'node': 'empty',
-                            'tree': []
-                        }]
-                    }]
-                }]
-            }];
 
             const schema = new Schema(map, input);
             const result = schema.parse('sequence');
 
             expect(result).toBeTruthy();
             expect(schema.eatenInput).toBe('136368');
-            expect(schema.tree).toHaveSubset(expectedTree);
+        });
+
+        it('should accept capture groups and pass them as parameters to their respective callback', () => {
+            const callback = spy();
+            const expectedFunctionName = `function_call`;
+            const input = `{{${expectedFunctionName}()}}`;
+
+            const map = {
+                node: schema => schema.breaker(),
+                breaker: schema => schema.curlyLeft() && schema.curlyLeft() && schema.function(callback) && schema.curlyRight() && schema.curlyRight(),
+                curlyLeft: () => '\\{',
+                curlyRight: () => '\\}',
+                function: () => '([a-z][a-z0-9_]*)\\(\\)',
+            };
+
+            const schema = new Schema(map, input);
+            const result = schema.parse('node');
+
+            expect(result).toBeTruthy();
+            expect(callback.args[0].length).toBe(2);
+            expect(callback.args[0][1]).toBe(expectedFunctionName);
+        });
+
+        xit('should allow for multiple capture groups to be passed as parameters to their respective callback', () => {
+            const callback = spy();
+            const expectedFunctionName = `function_call`;
+            const args = [12, 34, 56];
+
+            const input = `{{${expectedFunctionName}(${args.join(',')})}}`;
+            const map = {
+                node: schema => schema.breaker(),
+                breaker: schema => schema.curlyLeft() && schema.curlyLeft() && schema.function(callback) && schema.curlyRight() && schema.curlyRight(),
+                curlyLeft: () => '\\{',
+                curlyRight: () => '\\}',
+                function: () => '([a-z][a-z0-9_]*)\\(([0-9]*)(?:,([0-9]*))*\\)',
+            };
+
+            const schema = new Schema(map, input);
+            const result = schema.parse('node');
+            const actualParameters = callback.args[0];
+            const expectedParameters = args;
+
+            actualParameters.splice(0, 1);
+            expectedParameters.unshift(expectedFunctionName);
+
+            expect(result).toBeTruthy();
+            expect(actualParameters).toEqual(expectedParameters);
+        });
+    });
+
+    describe('cleanString()', () => {
+        it('should gracefully exit if no input is specified', () => {
+            const schema = new Schema();
+            let exceptionsCaught = 0;
+
+            try{
+                schema.cleanString();
+            }catch(e) {
+                exceptionsCaught++;
+            }
+
+            expect(exceptionsCaught).toBe(0);
+        });
+
+        it('should clean string of white spaces at both ends of the stirng', () => {
+            const expectedString = 'some string.';
+            const initialString = `
+            ${expectedString}
+            `;
+
+            const schema = new Schema();
+            const result = schema.cleanString(initialString);
+
+            expect(result).toBe(expectedString);
+        });
+
+        it('should not clean white spaces that are not found at either end of a string', () => {
+            const expectedString = `some
+            string.`;
+            const initialString = `
+            ${expectedString}
+            `;
+
+            const schema = new Schema();
+            const result = schema.cleanString(initialString);
+
+            expect(result).toBe(expectedString);
+        });
+    });
+
+    describe('isExplicitlyFalse()', () => {
+        it('should properly handle the following values', () => {
+            const schema = new Schema();
+
+            expect(schema.isExplicitlyFalse(false)).toBeTruthy();
+            expect(schema.isExplicitlyFalse(true)).toBeFalsy();
+            expect(schema.isExplicitlyFalse([])).toBeFalsy();
+            expect(schema.isExplicitlyFalse(['one', 'two'])).toBeFalsy();
         });
     });
 
