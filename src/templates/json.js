@@ -1,4 +1,4 @@
-export default {
+module.exports = {
     nonEmptyValue: (schema) => schema.array() || schema.object() || schema.literal(),
     value: (schema) => schema.nonEmptyValue() ||schema. empty(),
     object: (schema) => schema.parensLeft() && schema.objectValue() && schema.parensRight(),

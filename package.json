@@ -1,6 +1,6 @@
 {
     "name": "extensible-compiler",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "A language-agnostic compiler, allowing you to define your own validation rules.",
     "author": "Patrick Vienneau",
     "keywords": [
@@ -9,8 +9,11 @@
         "compiler",
         "language"
     ],
-    "repository": "https://github.com/pvienneau/JSON-parser",
-    "issues": "https://github.com/pvienneau/JSON-parser/issues",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/pvienneau/JSON-parser"
+    },
+    "bugs": "https://github.com/pvienneau/JSON-parser/issues",
     "license": "MIT",
     "main": "dist/index.js",
     "scripts": {
@@ -21,6 +24,7 @@
     "pre-push": [
         "test:build"
     ],
+    "dependencies": {},
     "devDependencies": {
         "babel-cli": "^6.18.0",
         "babel-eslint": "^7.1.1",
@@ -58,6 +62,5 @@
         "directories": {
             "baseURL": "jspm"
         }
-    },
-    "dependencies": {}
+    }
 }
