@@ -6,7 +6,7 @@
 
 Language-agnostic compiler.
 
-## How to use
+## Usage example (JSON)
 
 ```
 const input = '{"some":["json", "to", "validate"]}';
